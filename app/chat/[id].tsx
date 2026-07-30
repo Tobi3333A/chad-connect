@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -15,38 +15,88 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MessageBubble } from '@/components/chat/message-bubble';
 import { Avatar } from '@/components/ui/avatar';
-import { getMessages, sendMessage } from '@/services/chat';
-import { enrichConversations, mockConversations, CURRENT_USER_ID } from '@/data/mock';
-import type { Message } from '@/types';
+import { useAuth } from '@/contexts/auth-context';
+import { supabase } from '@/lib/supabase';
+import {
+  getConversationById,
+  getMessages,
+  markConversationRead,
+  sendMessage,
+  subscribeToMessages,
+} from '@/services/chat';
+import type { Conversation, Message } from '@/types';
 import { Palette, Radius, Spacing, Typography } from '@/constants/theme';
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const scrollRef = useRef<ScrollView>(null);
+  const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
 
-  const conversation = enrichConversations(mockConversations).find((c) => c._id === id);
-  const otherUser = conversation?.participants?.find((p) => p._id !== CURRENT_USER_ID);
+  const otherUser = conversation?.participants?.find((p) => p._id !== user?._id);
 
   useEffect(() => {
-    if (id) {
-      getMessages(id).then((msgs) => {
+    if (!id || !user) return;
+
+    let active = true;
+
+    (async () => {
+      try {
+        const [conv, msgs] = await Promise.all([
+          getConversationById(id),
+          getMessages(id),
+        ]);
+        if (!active) return;
+        setConversation(conv);
         setMessages(msgs);
-        setLoading(false);
+        await markConversationRead(id);
+      } catch {
+        if (active) {
+          setConversation(null);
+          setMessages([]);
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+
+    const channel = subscribeToMessages(id, (message) => {
+      setMessages((prev) => {
+        if (prev.some((m) => m._id === message._id)) return prev;
+        return [...prev, message];
       });
+      if (message.senderId !== user._id) {
+        markConversationRead(id).catch(() => undefined);
+      }
+    });
+
+    return () => {
+      active = false;
+      void supabase.removeChannel(channel);
+    };
+  }, [id, user]);
+
+  useEffect(() => {
+    if (!loading) {
+      scrollRef.current?.scrollToEnd({ animated: true });
     }
-  }, [id]);
+  }, [messages, loading]);
 
   const handleSend = async () => {
-    if (!input.trim() || !id) return;
+    if (!input.trim() || !id || !user) return;
     setSending(true);
     try {
-      const msg = await sendMessage(id, input.trim(), CURRENT_USER_ID);
-      setMessages((prev) => [...prev, msg]);
+      const msg = await sendMessage(id, input.trim());
+      setMessages((prev) => {
+        if (prev.some((m) => m._id === msg._id)) return prev;
+        return [...prev, msg];
+      });
       setInput('');
     } finally {
       setSending(false);
@@ -75,15 +125,16 @@ export default function ChatScreen() {
         )}
       </View>
 
-      {loading ? (
+      {loading || !user ? (
         <ActivityIndicator color={Palette.primary} style={styles.loader} />
       ) : (
         <ScrollView
+          ref={scrollRef}
           style={styles.messages}
           contentContainerStyle={styles.messagesContent}
           showsVerticalScrollIndicator={false}>
           {messages.map((msg) => (
-            <MessageBubble key={msg._id} message={msg} />
+            <MessageBubble key={msg._id} message={msg} currentUserId={user._id} />
           ))}
         </ScrollView>
       )}

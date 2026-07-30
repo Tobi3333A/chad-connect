@@ -1,20 +1,25 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Screen } from '@/components/layout/screen';
 import { ScreenHeader } from '@/components/layout/screen-header';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { useAuth } from '@/contexts/auth-context';
+import { startConversation } from '@/services/chat';
 import { getRideById } from '@/services/rides';
 import type { RideRequest } from '@/types';
 import { RIDE_TYPE_LABELS, Palette, Spacing, Typography } from '@/constants/theme';
 
 export default function RideDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const { user } = useAuth();
   const [ride, setRide] = useState<RideRequest | null>(null);
   const [loading, setLoading] = useState(true);
+  const [messaging, setMessaging] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -97,14 +102,32 @@ export default function RideDetailScreen() {
           </Card>
         )}
 
-        <Button
-          title="Message About Ride"
-          fullWidth
-          onPress={() =>
-            Alert.alert('Coming soon', 'Messaging will be wired in the chat feature.')
-          }
-          style={styles.cta}
-        />
+        {ride.author && ride.authorId !== user?._id && (
+          <Button
+            title={messaging ? 'Opening...' : 'Message About Ride'}
+            fullWidth
+            disabled={messaging}
+            style={styles.cta}
+            onPress={async () => {
+              setMessaging(true);
+              try {
+                const conversationId = await startConversation(ride.authorId, {
+                  type: 'ride',
+                  id: ride._id,
+                  label: `${ride.from} → ${ride.to}`,
+                });
+                router.push(`/chat/${conversationId}`);
+              } catch (e) {
+                Alert.alert(
+                  'Could not start chat',
+                  e instanceof Error ? e.message : 'Something went wrong',
+                );
+              } finally {
+                setMessaging(false);
+              }
+            }}
+          />
+        )}
       </Screen>
     </View>
   );

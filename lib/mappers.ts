@@ -1,4 +1,13 @@
-import type { Event, FeedItem, HousingPost, NeedType, RideRequest, User } from '@/types';
+import type {
+  Conversation,
+  Event,
+  FeedItem,
+  HousingPost,
+  Message,
+  NeedType,
+  RideRequest,
+  User,
+} from '@/types';
 import type { Database } from '@/supabase/types';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
@@ -6,6 +15,8 @@ type EventRow = Database['public']['Tables']['events']['Row'];
 type HousingRow = Database['public']['Tables']['housing_posts']['Row'];
 type RideRow = Database['public']['Tables']['ride_requests']['Row'];
 type FeedRow = Database['public']['Tables']['feed_items']['Row'];
+type MessageRow = Database['public']['Tables']['messages']['Row'];
+type ConversationRow = Database['public']['Tables']['conversations']['Row'];
 
 export function profileRowToUser(row: ProfileRow): User {
   return {
@@ -119,5 +130,36 @@ export function feedRowToItem(row: FeedRow, author?: User): FeedItem {
     author,
     metadata,
     createdAt: row.created_at,
+  };
+}
+
+export function messageRowToMessage(row: MessageRow, read = false): Message {
+  return {
+    _id: row.id,
+    conversationId: row.conversation_id,
+    senderId: row.sender_id,
+    content: row.content,
+    createdAt: row.created_at,
+    read,
+  };
+}
+
+export function conversationFromParts(input: {
+  row: ConversationRow;
+  participantIds: string[];
+  participants?: User[];
+  lastMessage?: Message;
+  unreadCount: number;
+}): Conversation {
+  return {
+    _id: input.row.id,
+    participantIds: input.participantIds,
+    participants: input.participants,
+    lastMessage: input.lastMessage,
+    unreadCount: input.unreadCount,
+    contextType: input.row.context_type ?? undefined,
+    contextId: input.row.context_id ?? undefined,
+    contextLabel: input.row.context_label ?? undefined,
+    updatedAt: input.row.updated_at,
   };
 }

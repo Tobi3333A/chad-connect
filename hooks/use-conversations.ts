@@ -11,6 +11,8 @@ export function useConversations() {
     try {
       const data = await getConversations();
       setConversations(data);
+    } catch {
+      setConversations([]);
     } finally {
       setLoading(false);
     }

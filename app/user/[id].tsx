@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Screen } from '@/components/layout/screen';
 import { ScreenHeader } from '@/components/layout/screen-header';
 import { Avatar } from '@/components/ui/avatar';
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
 import { getUserById } from '@/services/auth';
+import { startConversation } from '@/services/chat';
 import {
   acceptConnection,
   declineConnection,
@@ -20,11 +21,13 @@ import { NEED_LABELS, Palette, Spacing, Typography } from '@/constants/theme';
 
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const { user: me } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [connection, setConnection] = useState<Connection | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [messaging, setMessaging] = useState(false);
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
@@ -187,12 +190,27 @@ export default function UserProfileScreen() {
               />
             )}
             <Button
-              title="Send Message"
+              title={messaging ? 'Opening...' : 'Send Message'}
               variant="outline"
               fullWidth
-              onPress={() =>
-                Alert.alert('Coming soon', 'Messaging will be wired in the chat feature.')
-              }
+              disabled={messaging}
+              onPress={async () => {
+                setMessaging(true);
+                try {
+                  const conversationId = await startConversation(user._id, {
+                    type: 'general',
+                    label: 'Direct message',
+                  });
+                  router.push(`/chat/${conversationId}`);
+                } catch (e) {
+                  Alert.alert(
+                    'Could not start chat',
+                    e instanceof Error ? e.message : 'Something went wrong',
+                  );
+                } finally {
+                  setMessaging(false);
+                }
+              }}
             />
           </View>
         )}
