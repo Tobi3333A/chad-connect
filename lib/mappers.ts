@@ -5,6 +5,7 @@ import type {
   HousingPost,
   Message,
   NeedType,
+  Notification,
   RideRequest,
   User,
 } from '@/types';
@@ -17,6 +18,7 @@ type RideRow = Database['public']['Tables']['ride_requests']['Row'];
 type FeedRow = Database['public']['Tables']['feed_items']['Row'];
 type MessageRow = Database['public']['Tables']['messages']['Row'];
 type ConversationRow = Database['public']['Tables']['conversations']['Row'];
+type NotificationRow = Database['public']['Tables']['notifications']['Row'];
 
 export function profileRowToUser(row: ProfileRow): User {
   return {
@@ -161,5 +163,18 @@ export function conversationFromParts(input: {
     contextId: input.row.context_id ?? undefined,
     contextLabel: input.row.context_label ?? undefined,
     updatedAt: input.row.updated_at,
+  };
+}
+
+export function notificationRowToNotification(row: NotificationRow): Notification {
+  return {
+    _id: row.id,
+    userId: row.user_id,
+    type: row.type,
+    title: row.title,
+    body: row.body,
+    read: row.read,
+    relatedId: row.related_id ?? undefined,
+    createdAt: row.created_at,
   };
 }

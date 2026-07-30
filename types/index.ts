@@ -1,6 +1,6 @@
 /**
- * ChadConnect — TypeScript types mirroring future MongoDB collections.
- * Each interface maps 1:1 to a document shape you'll store in Atlas.
+ * ChadConnect — app-facing types mapped from Supabase/Postgres rows.
+ * Services convert DB `snake_case` rows into these shapes for the UI.
  */
 
 export type NeedType = 'housing' | 'rides' | 'study' | 'networking' | 'general';
