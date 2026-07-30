@@ -1,8 +1,9 @@
-import type { Event, NeedType, User } from '@/types';
+import type { Event, HousingPost, NeedType, User } from '@/types';
 import type { Database } from '@/supabase/types';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 type EventRow = Database['public']['Tables']['events']['Row'];
+type HousingRow = Database['public']['Tables']['housing_posts']['Row'];
 
 export function profileRowToUser(row: ProfileRow): User {
   return {
@@ -47,6 +48,34 @@ export function eventRowToEvent(row: EventRow): Event {
     imageUrl: row.image_url ?? undefined,
     tags: row.tags ?? [],
     createdBy: row.created_by,
+    createdAt: row.created_at,
+  };
+}
+
+export function housingRowToPost(
+  row: HousingRow,
+  author?: User,
+  eventTitle?: string | null,
+): HousingPost {
+  return {
+    _id: row.id,
+    title: row.title,
+    type: row.type,
+    eventId: row.event_id ?? undefined,
+    eventTitle: eventTitle ?? undefined,
+    location: {
+      city: row.city,
+      state: row.state ?? undefined,
+      country: row.country,
+    },
+    budgetMin: row.budget_min != null ? Number(row.budget_min) : undefined,
+    budgetMax: row.budget_max != null ? Number(row.budget_max) : undefined,
+    moveInDate: row.move_in_date,
+    moveOutDate: row.move_out_date ?? undefined,
+    description: row.description,
+    preferences: row.preferences ?? [],
+    authorId: row.author_id,
+    author,
     createdAt: row.created_at,
   };
 }

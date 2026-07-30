@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { Screen } from '@/components/layout/screen';
 import { ScreenHeader } from '@/components/layout/screen-header';
 import { Avatar } from '@/components/ui/avatar';
@@ -13,17 +13,15 @@ import { HOUSING_TYPE_LABELS, Palette, Spacing, Typography } from '@/constants/t
 
 export default function HousingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
   const [post, setPost] = useState<HousingPost | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (id) {
-      getHousingById(id).then((p) => {
-        setPost(p);
-        setLoading(false);
-      });
-    }
+    if (!id) return;
+    getHousingById(id)
+      .then(setPost)
+      .catch(() => setPost(null))
+      .finally(() => setLoading(false));
   }, [id]);
 
   if (loading) {
@@ -55,16 +53,31 @@ export default function HousingDetailScreen() {
         {post.eventTitle && <Text style={styles.event}>{post.eventTitle}</Text>}
 
         <Card style={styles.details}>
-          <DetailItem label="Location" value={`${post.location.city}, ${post.location.state}`} />
+          <DetailItem
+            label="Location"
+            value={
+              post.location.state
+                ? `${post.location.city}, ${post.location.state}`
+                : post.location.city
+            }
+          />
           <DetailItem label="Budget" value={budget} />
           <DetailItem
             label="Move-in"
-            value={new Date(post.moveInDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+            value={new Date(post.moveInDate).toLocaleDateString('en-US', {
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric',
+            })}
           />
           {post.moveOutDate && (
             <DetailItem
               label="Move-out"
-              value={new Date(post.moveOutDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              value={new Date(post.moveOutDate).toLocaleDateString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+              })}
             />
           )}
         </Card>
@@ -72,12 +85,16 @@ export default function HousingDetailScreen() {
         <Text style={styles.sectionTitle}>Description</Text>
         <Text style={styles.description}>{post.description}</Text>
 
-        <Text style={styles.sectionTitle}>Preferences</Text>
-        <View style={styles.tags}>
-          {post.preferences.map((p) => (
-            <Badge key={p} label={p} variant="outline" />
-          ))}
-        </View>
+        {post.preferences.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Preferences</Text>
+            <View style={styles.tags}>
+              {post.preferences.map((p) => (
+                <Badge key={p} label={p} variant="outline" />
+              ))}
+            </View>
+          </>
+        )}
 
         {post.author && (
           <Card style={styles.authorCard}>
@@ -92,7 +109,9 @@ export default function HousingDetailScreen() {
         <Button
           title="Message About Housing"
           fullWidth
-          onPress={() => router.push(`/chat/conv-001`)}
+          onPress={() =>
+            Alert.alert('Coming soon', 'Messaging will be wired in the chat feature.')
+          }
           style={styles.cta}
         />
       </Screen>
