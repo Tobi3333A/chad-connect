@@ -38,13 +38,15 @@ export default function CreateHousingScreen() {
         country: 'USA',
         budgetMin: budgetMin ? parseInt(budgetMin, 10) : undefined,
         budgetMax: budgetMax ? parseInt(budgetMax, 10) : undefined,
-        moveInDate: moveInDate || new Date().toISOString(),
+        moveInDate: moveInDate || new Date().toISOString().slice(0, 10),
         description,
         preferences: [],
       });
       Alert.alert('Posted!', 'Your housing listing is live.', [
         { text: 'OK', onPress: () => router.back() },
       ]);
+    } catch (e) {
+      Alert.alert('Could not post', e instanceof Error ? e.message : 'Something went wrong');
     } finally {
       setLoading(false);
     }
