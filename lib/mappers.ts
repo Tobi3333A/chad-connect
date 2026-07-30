@@ -1,9 +1,10 @@
-import type { Event, HousingPost, NeedType, User } from '@/types';
+import type { Event, HousingPost, NeedType, RideRequest, User } from '@/types';
 import type { Database } from '@/supabase/types';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 type EventRow = Database['public']['Tables']['events']['Row'];
 type HousingRow = Database['public']['Tables']['housing_posts']['Row'];
+type RideRow = Database['public']['Tables']['ride_requests']['Row'];
 
 export function profileRowToUser(row: ProfileRow): User {
   return {
@@ -74,6 +75,28 @@ export function housingRowToPost(
     moveOutDate: row.move_out_date ?? undefined,
     description: row.description,
     preferences: row.preferences ?? [],
+    authorId: row.author_id,
+    author,
+    createdAt: row.created_at,
+  };
+}
+
+export function rideRowToRequest(
+  row: RideRow,
+  author?: User,
+  eventTitle?: string | null,
+): RideRequest {
+  return {
+    _id: row.id,
+    type: row.type,
+    eventId: row.event_id ?? undefined,
+    eventTitle: eventTitle ?? undefined,
+    from: row.from_text,
+    to: row.to_text,
+    departureTime: row.departure_time,
+    seatsAvailable: row.seats_available ?? undefined,
+    costPerPerson: row.cost_per_person != null ? Number(row.cost_per_person) : undefined,
+    description: row.description,
     authorId: row.author_id,
     author,
     createdAt: row.created_at,

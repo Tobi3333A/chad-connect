@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { Screen } from '@/components/layout/screen';
 import { ScreenHeader } from '@/components/layout/screen-header';
 import { Avatar } from '@/components/ui/avatar';
@@ -13,17 +13,15 @@ import { RIDE_TYPE_LABELS, Palette, Spacing, Typography } from '@/constants/them
 
 export default function RideDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
   const [ride, setRide] = useState<RideRequest | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (id) {
-      getRideById(id).then((r) => {
-        setRide(r);
-        setLoading(false);
-      });
-    }
+    if (!id) return;
+    getRideById(id)
+      .then(setRide)
+      .catch(() => setRide(null))
+      .finally(() => setLoading(false));
   }, [id]);
 
   if (loading) {
@@ -102,7 +100,9 @@ export default function RideDetailScreen() {
         <Button
           title="Message About Ride"
           fullWidth
-          onPress={() => router.push(`/chat/conv-003`)}
+          onPress={() =>
+            Alert.alert('Coming soon', 'Messaging will be wired in the chat feature.')
+          }
           style={styles.cta}
         />
       </Screen>
