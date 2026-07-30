@@ -1,22 +1,26 @@
 import type { CreateEventInput, Event } from '@/types';
-import { mockEvents } from '@/data/mock';
-import { simulateDelay } from './api';
+import { eventRowToEvent } from '@/lib/mappers';
+import { supabase } from '@/lib/supabase';
 
 export async function getEvents(filters?: {
   type?: string;
   city?: string;
   query?: string;
 }): Promise<Event[]> {
-  // TODO: GET /api/events?type=&city=&q=
-  let results = [...mockEvents];
+  let query = supabase.from('events').select('*').order('start_date', { ascending: true });
+
   if (filters?.type) {
-    results = results.filter((e) => e.type === filters.type);
+    query = query.eq('type', filters.type as Event['type']);
   }
   if (filters?.city) {
-    results = results.filter(
-      (e) => e.location.city.toLowerCase() === filters.city!.toLowerCase(),
-    );
+    query = query.ilike('city', filters.city);
   }
+
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+
+  let results = (data ?? []).map(eventRowToEvent);
+
   if (filters?.query) {
     const q = filters.query.toLowerCase();
     results = results.filter(
@@ -26,28 +30,69 @@ export async function getEvents(filters?: {
         e.tags.some((t) => t.toLowerCase().includes(q)),
     );
   }
-  return simulateDelay(results);
+
+  return results;
 }
 
 export async function getEventById(id: string): Promise<Event | null> {
-  // TODO: GET /api/events/:id
-  return simulateDelay(mockEvents.find((e) => e._id === id) ?? null);
+  const { data, error } = await supabase.from('events').select('*').eq('id', id).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  return eventRowToEvent(data);
 }
 
 export async function createEvent(input: CreateEventInput): Promise<Event> {
-  // TODO: POST /api/events
-  const event: Event = {
-    _id: `event-${Date.now()}`,
-    ...input,
-    location: { city: input.city, country: input.country },
-    attendeeCount: 1,
-    createdBy: 'user-001',
-    createdAt: new Date().toISOString(),
-  };
-  return simulateDelay(event);
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError) throw authError;
+  if (!authData.user) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('events')
+    .insert({
+      title: input.title,
+      type: input.type,
+      organization: input.organization,
+      city: input.city,
+      country: input.country,
+      start_date: input.startDate.slice(0, 10),
+      end_date: input.endDate.slice(0, 10),
+      description: input.description,
+      tags: input.tags,
+      created_by: authData.user.id,
+      attendee_count: 0,
+    })
+    .select('*')
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  const { error: joinError } = await supabase.from('event_attendees').insert({
+    event_id: data.id,
+    user_id: authData.user.id,
+  });
+
+  if (joinError && joinError.code !== '23505') {
+    throw new Error(joinError.message);
+  }
+
+  const refreshed = await getEventById(data.id);
+  return refreshed ?? eventRowToEvent(data);
 }
 
 export async function joinEvent(eventId: string): Promise<{ success: boolean }> {
-  // TODO: POST /api/events/:id/join
-  return simulateDelay({ success: true });
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError) throw authError;
+  if (!authData.user) throw new Error('Not authenticated');
+
+  const { error } = await supabase.from('event_attendees').insert({
+    event_id: eventId,
+    user_id: authData.user.id,
+  });
+
+  if (error) {
+    if (error.code === '23505') return { success: true };
+    throw new Error(error.message);
+  }
+
+  return { success: true };
 }
