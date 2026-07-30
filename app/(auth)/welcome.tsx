@@ -17,22 +17,21 @@ export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + Spacing.lg }]}>
+    <View style={[styles.container, { paddingBottom: insets.bottom + Spacing.lg }]}>
       <LinearGradient
         colors={[Palette.gradientStart, Palette.gradientEnd]}
-        style={styles.heroBg}
-      />
-      <View style={styles.content}>
-        <View style={styles.brandBlock}>
-          <View style={styles.logoWrap}>
-            <Ionicons name="people-circle" size={48} color={Palette.white} />
-          </View>
-          <Text style={styles.brand}>ChadConnect</Text>
-          <Text style={styles.tagline}>
-            Connect with students for housing, rides, and events — all in one place.
-          </Text>
+        style={[styles.hero, { paddingTop: insets.top + Spacing.xl }]}
+      >
+        <View style={styles.logoWrap}>
+          <Ionicons name="people-circle" size={48} color={Palette.white} />
         </View>
+        <Text style={styles.brand}>ChadConnect</Text>
+        <Text style={styles.tagline}>
+          Connect with students for housing, rides, and events — all in one place.
+        </Text>
+      </LinearGradient>
 
+      <View style={styles.content}>
         <View style={styles.features}>
           {FEATURES.map((f) => (
             <View key={f.title} style={styles.featureRow}>
@@ -68,23 +67,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Palette.background,
   },
-  heroBg: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 280,
+  hero: {
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xl,
     borderBottomLeftRadius: Radius.xl * 2,
     borderBottomRightRadius: Radius.xl * 2,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: Spacing.lg,
-    justifyContent: 'space-between',
-  },
-  brandBlock: {
-    alignItems: 'center',
-    paddingTop: Spacing.xxl,
   },
   logoWrap: {
     width: 80,
@@ -100,6 +88,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Palette.white,
     letterSpacing: -1,
+    lineHeight: 44,
   },
   tagline: {
     ...Typography.body,
@@ -107,6 +96,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: Spacing.sm,
     paddingHorizontal: Spacing.md,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xl,
+    justifyContent: 'space-between',
   },
   features: {
     gap: Spacing.md,
