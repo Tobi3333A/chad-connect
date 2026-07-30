@@ -19,6 +19,8 @@ export type NotificationType =
   | 'event'
   | 'system';
 
+export type ConnectionStatus = 'pending' | 'accepted' | 'declined' | 'blocked';
+
 export interface GeoLocation {
   city: string;
   state?: string;
@@ -136,6 +138,15 @@ export interface Notification {
   read: boolean;
   relatedId?: string;
   createdAt: string;
+}
+
+export interface Connection {
+  _id: string;
+  requesterId: string;
+  addresseeId: string;
+  status: ConnectionStatus;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateEventInput {
