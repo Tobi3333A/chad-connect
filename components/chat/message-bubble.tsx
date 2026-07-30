@@ -1,14 +1,14 @@
 import { StyleSheet, Text, View } from 'react-native';
 import type { Message } from '@/types';
-import { CURRENT_USER_ID } from '@/data/mock';
 import { Palette, Radius, Spacing, Typography } from '@/constants/theme';
 
 interface MessageBubbleProps {
   message: Message;
+  currentUserId: string;
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
-  const isOwn = message.senderId === CURRENT_USER_ID;
+export function MessageBubble({ message, currentUserId }: MessageBubbleProps) {
+  const isOwn = message.senderId === currentUserId;
 
   return (
     <View style={[styles.wrapper, isOwn && styles.wrapperOwn]}>

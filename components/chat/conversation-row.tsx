@@ -2,8 +2,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/contexts/auth-context';
 import type { Conversation } from '@/types';
-import { CURRENT_USER_ID } from '@/data/mock';
 import { Palette, Spacing, Typography } from '@/constants/theme';
 
 interface ConversationRowProps {
@@ -12,10 +12,14 @@ interface ConversationRowProps {
 
 export function ConversationRow({ conversation }: ConversationRowProps) {
   const router = useRouter();
+  const { user } = useAuth();
 
-  const otherUser = conversation.participants?.find((p) => p._id !== CURRENT_USER_ID);
+  const otherUser = conversation.participants?.find((p) => p._id !== user?._id);
   const time = conversation.updatedAt
-    ? new Date(conversation.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    ? new Date(conversation.updatedAt).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      })
     : '';
 
   return (

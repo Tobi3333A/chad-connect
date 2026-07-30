@@ -894,7 +894,7 @@ CREATE POLICY "feed_items_select_authenticated"
   USING (true);
 
 -- ---------------------------------------------------------------------------
--- 12. Realtime (optional — uncomment after confirming publication exists)
+-- 12. Realtime (run separately if needed — safe to re-run once)
 -- ---------------------------------------------------------------------------
 -- ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
 -- ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;

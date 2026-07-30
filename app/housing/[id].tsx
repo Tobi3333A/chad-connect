@@ -1,20 +1,25 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Screen } from '@/components/layout/screen';
 import { ScreenHeader } from '@/components/layout/screen-header';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { useAuth } from '@/contexts/auth-context';
+import { startConversation } from '@/services/chat';
 import { getHousingById } from '@/services/housing';
 import type { HousingPost } from '@/types';
 import { HOUSING_TYPE_LABELS, Palette, Spacing, Typography } from '@/constants/theme';
 
 export default function HousingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const { user } = useAuth();
   const [post, setPost] = useState<HousingPost | null>(null);
   const [loading, setLoading] = useState(true);
+  const [messaging, setMessaging] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -106,14 +111,32 @@ export default function HousingDetailScreen() {
           </Card>
         )}
 
-        <Button
-          title="Message About Housing"
-          fullWidth
-          onPress={() =>
-            Alert.alert('Coming soon', 'Messaging will be wired in the chat feature.')
-          }
-          style={styles.cta}
-        />
+        {post.author && post.authorId !== user?._id && (
+          <Button
+            title={messaging ? 'Opening...' : 'Message About Housing'}
+            fullWidth
+            disabled={messaging}
+            style={styles.cta}
+            onPress={async () => {
+              setMessaging(true);
+              try {
+                const conversationId = await startConversation(post.authorId, {
+                  type: 'housing',
+                  id: post._id,
+                  label: post.title,
+                });
+                router.push(`/chat/${conversationId}`);
+              } catch (e) {
+                Alert.alert(
+                  'Could not start chat',
+                  e instanceof Error ? e.message : 'Something went wrong',
+                );
+              } finally {
+                setMessaging(false);
+              }
+            }}
+          />
+        )}
       </Screen>
     </View>
   );
