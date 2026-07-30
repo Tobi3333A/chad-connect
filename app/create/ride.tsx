@@ -41,6 +41,8 @@ export default function CreateRideScreen() {
       Alert.alert('Posted!', 'Your ride is live.', [
         { text: 'OK', onPress: () => router.back() },
       ]);
+    } catch (e) {
+      Alert.alert('Could not post', e instanceof Error ? e.message : 'Something went wrong');
     } finally {
       setLoading(false);
     }
