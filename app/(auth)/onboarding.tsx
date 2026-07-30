@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Chip } from '@/components/ui/chip';
+import { useAuth } from '@/contexts/auth-context';
 import { completeOnboarding } from '@/services/auth';
 import type { NeedType } from '@/types';
 import { NEED_LABELS, Palette, Spacing, Typography } from '@/constants/theme';
@@ -14,6 +15,7 @@ const NEED_OPTIONS: NeedType[] = ['housing', 'rides', 'study', 'networking', 'ge
 export default function OnboardingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { refreshProfile } = useAuth();
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [university, setUniversity] = useState('');
@@ -23,6 +25,7 @@ export default function OnboardingScreen() {
   const [city, setCity] = useState('');
   const [needs, setNeeds] = useState<NeedType[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const toggleNeed = (need: NeedType) => {
     setNeeds((prev) =>
@@ -31,6 +34,7 @@ export default function OnboardingScreen() {
   };
 
   const handleFinish = async () => {
+    setError('');
     setLoading(true);
     try {
       await completeOnboarding({
@@ -43,7 +47,10 @@ export default function OnboardingScreen() {
         city,
         country: 'USA',
       });
+      await refreshProfile();
       router.replace('/(tabs)');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not save profile');
     } finally {
       setLoading(false);
     }
@@ -113,6 +120,8 @@ export default function OnboardingScreen() {
           </View>
         </View>
       )}
+
+      {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <View style={styles.actions}>
         {step < 2 ? (
@@ -195,5 +204,10 @@ const styles = StyleSheet.create({
   actions: {
     gap: Spacing.sm,
     marginTop: Spacing.xl,
+  },
+  error: {
+    ...Typography.bodySmall,
+    color: Palette.error,
+    marginTop: Spacing.md,
   },
 });

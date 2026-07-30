@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/components/layout/screen-header';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
-import { getCurrentUser } from '@/services/auth';
-import type { NeedType, User } from '@/types';
-import { CURRENT_USER_ID, mockUsers } from '@/data/mock';
+import { useAuth } from '@/contexts/auth-context';
+import { updateProfile } from '@/services/auth';
+import type { NeedType } from '@/types';
 import { NEED_LABELS, Palette, Spacing } from '@/constants/theme';
 
 const NEED_OPTIONS: NeedType[] = ['housing', 'rides', 'study', 'networking', 'general'];
@@ -16,22 +16,20 @@ const NEED_OPTIONS: NeedType[] = ['housing', 'rides', 'study', 'networking', 'ge
 export default function EditProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [user, setUser] = useState<User | null>(null);
+  const { user, refreshProfile } = useAuth();
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
   const [city, setCity] = useState('');
   const [needs, setNeeds] = useState<NeedType[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    getCurrentUser().then((u) => {
-      const displayUser = u ?? mockUsers.find((m) => m._id === CURRENT_USER_ID)!;
-      setUser(displayUser);
-      setName(displayUser.name);
-      setBio(displayUser.bio ?? '');
-      setCity(displayUser.location?.city ?? '');
-      setNeeds(displayUser.needs);
-    });
-  }, []);
+    if (!user) return;
+    setName(user.name);
+    setBio(user.bio ?? '');
+    setCity(user.location?.city ?? '');
+    setNeeds(user.needs);
+  }, [user]);
 
   const toggleNeed = (need: NeedType) => {
     setNeeds((prev) =>
@@ -39,14 +37,48 @@ export default function EditProfileScreen() {
     );
   };
 
+  const handleSave = async () => {
+    if (!name.trim()) {
+      Alert.alert('Name required', 'Please enter your name.');
+      return;
+    }
+    setLoading(true);
+    try {
+      await updateProfile({
+        name,
+        bio,
+        city,
+        needs,
+      });
+      await refreshProfile();
+      router.back();
+    } catch (e) {
+      Alert.alert('Could not save', e instanceof Error ? e.message : 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <ScreenHeader showBack title="Edit Profile" />
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.lg }]}>
         <Input label="Full Name" value={name} onChangeText={setName} />
-        <Input label="Bio" value={bio} onChangeText={setBio} multiline numberOfLines={3} style={{ minHeight: 80, textAlignVertical: 'top' }} />
+        <Input
+          label="Bio"
+          value={bio}
+          onChangeText={setBio}
+          multiline
+          numberOfLines={3}
+          style={{ minHeight: 80, textAlignVertical: 'top' }}
+        />
         <Input label="City" value={city} onChangeText={setCity} />
-        <Input label="University" value={user?.university ?? ''} editable={false} hint="Contact support to change university" />
+        <Input
+          label="University"
+          value={user?.university ?? ''}
+          editable={false}
+          hint="Contact support to change university"
+        />
         <Input label="Email" value={user?.email ?? ''} editable={false} />
 
         <View style={styles.chips}>
@@ -60,7 +92,12 @@ export default function EditProfileScreen() {
           ))}
         </View>
 
-        <Button title="Save Changes" fullWidth onPress={() => router.back()} />
+        <Button
+          title={loading ? 'Saving...' : 'Save Changes'}
+          fullWidth
+          onPress={handleSave}
+          disabled={loading}
+        />
       </ScrollView>
     </View>
   );

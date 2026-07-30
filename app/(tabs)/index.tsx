@@ -8,30 +8,26 @@ import { FeedCard } from '@/components/feed/feed-card';
 import { EventCard } from '@/components/events/event-card';
 import { HeroBanner, QuickActions } from '@/components/home/quick-actions';
 import { SectionHeader, SuggestedUserCard } from '@/components/home/suggested-user-card';
+import { useAuth } from '@/contexts/auth-context';
 import { useFeed } from '@/hooks/use-feed';
 import { useEvents } from '@/hooks/use-events';
 import { useUnreadNotifications } from '@/hooks/use-notifications';
-import { getCurrentUser } from '@/services/auth';
 import { getSuggestedConnections } from '@/services/feed';
 import type { User } from '@/types';
-import { CURRENT_USER_ID, mockUsers } from '@/data/mock';
 import { Palette, Spacing, Typography } from '@/constants/theme';
 
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const { items, loading: feedLoading } = useFeed();
   const { events } = useEvents();
   const { count: unreadCount } = useUnreadNotifications();
-  const [user, setUser] = useState<User | null>(null);
   const [suggested, setSuggested] = useState<User[]>([]);
 
   useEffect(() => {
-    getCurrentUser().then(setUser);
     getSuggestedConnections().then(setSuggested);
   }, []);
-
-  const displayUser = user ?? mockUsers.find((u) => u._id === CURRENT_USER_ID)!;
 
   return (
     <View style={styles.container}>
@@ -50,7 +46,7 @@ export default function HomeScreen() {
       </View>
 
       <Screen>
-        <HeroBanner userName={displayUser.name} />
+        <HeroBanner userName={user?.name || 'there'} />
         <QuickActions />
 
         <SectionHeader

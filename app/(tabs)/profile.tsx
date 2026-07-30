@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,21 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
-import { getCurrentUser } from '@/services/auth';
-import type { User } from '@/types';
 import { NEED_LABELS, Palette, Spacing, Typography } from '@/constants/theme';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { signOut } = useAuth();
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    getCurrentUser().then(setUser);
-  }, []);
-
-  const displayUser = user;
+  const { user, signOut } = useAuth();
 
   const MENU_ITEMS = [
     { icon: 'create-outline' as const, label: 'Edit Profile', route: '/edit-profile' },
@@ -38,7 +28,7 @@ export default function ProfileScreen() {
     router.replace('/(auth)/welcome');
   };
 
-  if (!displayUser) {
+  if (!user) {
     return (
       <View style={[styles.container, styles.centered]}>
         <Text style={styles.title}>Profile</Text>
@@ -57,19 +47,19 @@ export default function ProfileScreen() {
       <Screen>
         <Card style={styles.profileCard}>
           <Avatar
-            uri={displayUser.avatarUrl}
-            name={displayUser.name || 'Student'}
+            uri={user.avatarUrl}
+            name={user.name || 'Student'}
             size={80}
-            showBadge={displayUser.isVerified}
+            showBadge={user.isVerified}
           />
-          <Text style={styles.name}>{displayUser.name || 'Complete your profile'}</Text>
-          <Text style={styles.university}>{displayUser.university || '—'}</Text>
+          <Text style={styles.name}>{user.name || 'Complete your profile'}</Text>
+          <Text style={styles.university}>{user.university || '—'}</Text>
           <Text style={styles.meta}>
-            {displayUser.major || '—'} · Class of {displayUser.graduationYear}
+            {user.major || '—'} · Class of {user.graduationYear}
           </Text>
-          {displayUser.bio && <Text style={styles.bio}>{displayUser.bio}</Text>}
+          {user.bio && <Text style={styles.bio}>{user.bio}</Text>}
           <View style={styles.needs}>
-            {displayUser.needs.map((need) => (
+            {user.needs.map((need) => (
               <Badge key={need} label={NEED_LABELS[need]} variant="outline" />
             ))}
           </View>
