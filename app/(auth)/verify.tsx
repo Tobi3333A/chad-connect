@@ -1,30 +1,34 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { verifyCode } from '@/services/auth';
+import { useAuth } from '@/contexts/auth-context';
+import { sendVerificationCode, verifyCode } from '@/services/auth';
 import { Palette, Spacing, Typography } from '@/constants/theme';
 
 export default function VerifyScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { refreshProfile } = useAuth();
   const { email } = useLocalSearchParams<{ email: string }>();
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
 
   const handleVerify = async () => {
     setError('');
-    if (code.length < 4) {
+    if (code.length < 6) {
       setError('Enter the 6-digit code');
       return;
     }
     setLoading(true);
     try {
       const user = await verifyCode(email ?? '', code);
-      if (!user.name) {
+      await refreshProfile();
+      if (!user.name?.trim()) {
         router.replace('/(auth)/onboarding');
       } else {
         router.replace('/(tabs)');
@@ -33,6 +37,19 @@ export default function VerifyScreen() {
       setError(e instanceof Error ? e.message : 'Invalid code');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!email) return;
+    setError('');
+    setResending(true);
+    try {
+      await sendVerificationCode(email);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not resend code');
+    } finally {
+      setResending(false);
     }
   };
 
@@ -53,7 +70,6 @@ export default function VerifyScreen() {
           keyboardType="number-pad"
           maxLength={6}
           error={error}
-          hint="For demo: enter any 4+ digit code"
         />
 
         <Button
@@ -63,7 +79,11 @@ export default function VerifyScreen() {
           disabled={loading}
         />
 
-        <Text style={styles.resend}>Did not receive it? Resend code</Text>
+        <Pressable onPress={handleResend} disabled={resending}>
+          <Text style={styles.resend}>
+            {resending ? 'Sending...' : 'Did not receive it? Resend code'}
+          </Text>
+        </Pressable>
       </View>
     </View>
   );
