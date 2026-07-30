@@ -149,8 +149,8 @@ export async function startConversation(
   const { data, error } = await supabase.rpc('start_conversation', {
     p_other_user_id: otherUserId,
     p_context_type: context?.type ?? 'general',
-    p_context_id: context?.id ?? null,
-    p_context_label: context?.label ?? null,
+    p_context_id: context?.id,
+    p_context_label: context?.label,
   });
 
   if (error) throw new Error(error.message);
