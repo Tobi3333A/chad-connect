@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/layout/screen';
 import { ScreenHeader } from '@/components/layout/screen-header';
+import { useAuth } from '@/contexts/auth-context';
 import { Palette, Spacing, Typography } from '@/constants/theme';
 
 const SETTINGS = [
@@ -16,8 +17,14 @@ const SETTINGS = [
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { signOut } = useAuth();
 
   const sections = [...new Set(SETTINGS.map((s) => s.section))];
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.replace('/(auth)/welcome');
+  };
 
   return (
     <View style={styles.container}>
@@ -38,9 +45,7 @@ export default function SettingsScreen() {
           </View>
         ))}
 
-        <Pressable
-          style={styles.signOut}
-          onPress={() => router.replace('/(auth)/welcome')}>
+        <Pressable style={styles.signOut} onPress={handleSignOut}>
           <Text style={styles.signOutText}>Sign Out</Text>
         </Pressable>
 

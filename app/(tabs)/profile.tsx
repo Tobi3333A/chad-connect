@@ -8,21 +8,22 @@ import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { useAuth } from '@/contexts/auth-context';
 import { getCurrentUser } from '@/services/auth';
 import type { User } from '@/types';
-import { CURRENT_USER_ID, mockUsers } from '@/data/mock';
 import { NEED_LABELS, Palette, Spacing, Typography } from '@/constants/theme';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { signOut } = useAuth();
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     getCurrentUser().then(setUser);
   }, []);
 
-  const displayUser = user ?? mockUsers.find((u) => u._id === CURRENT_USER_ID)!;
+  const displayUser = user;
 
   const MENU_ITEMS = [
     { icon: 'create-outline' as const, label: 'Edit Profile', route: '/edit-profile' },
@@ -31,6 +32,21 @@ export default function ProfileScreen() {
     { icon: 'car-outline' as const, label: 'My Rides', route: '/(tabs)/rides' },
     { icon: 'settings-outline' as const, label: 'Settings', route: '/settings' },
   ];
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.replace('/(auth)/welcome');
+  };
+
+  if (!displayUser) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text style={styles.title}>Profile</Text>
+        <Text style={styles.meta}>Loading your profile…</Text>
+        <Button title="Sign Out" variant="outline" onPress={handleSignOut} style={styles.signOut} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -42,13 +58,15 @@ export default function ProfileScreen() {
         <Card style={styles.profileCard}>
           <Avatar
             uri={displayUser.avatarUrl}
-            name={displayUser.name}
+            name={displayUser.name || 'Student'}
             size={80}
             showBadge={displayUser.isVerified}
           />
-          <Text style={styles.name}>{displayUser.name}</Text>
-          <Text style={styles.university}>{displayUser.university}</Text>
-          <Text style={styles.meta}>{displayUser.major} · Class of {displayUser.graduationYear}</Text>
+          <Text style={styles.name}>{displayUser.name || 'Complete your profile'}</Text>
+          <Text style={styles.university}>{displayUser.university || '—'}</Text>
+          <Text style={styles.meta}>
+            {displayUser.major || '—'} · Class of {displayUser.graduationYear}
+          </Text>
           {displayUser.bio && <Text style={styles.bio}>{displayUser.bio}</Text>}
           <View style={styles.needs}>
             {displayUser.needs.map((need) => (
@@ -74,7 +92,7 @@ export default function ProfileScreen() {
           title="Sign Out"
           variant="outline"
           fullWidth
-          onPress={() => router.replace('/(auth)/welcome')}
+          onPress={handleSignOut}
           style={styles.signOut}
         />
       </Screen>
@@ -86,6 +104,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Palette.background,
+  },
+  centered: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+    gap: Spacing.md,
   },
   header: {
     paddingHorizontal: Spacing.md,
