@@ -1,7 +1,8 @@
-import type { NeedType, User } from '@/types';
+import type { Event, NeedType, User } from '@/types';
 import type { Database } from '@/supabase/types';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+type EventRow = Database['public']['Tables']['events']['Row'];
 
 export function profileRowToUser(row: ProfileRow): User {
   return {
@@ -25,5 +26,27 @@ export function profileRowToUser(row: ProfileRow): User {
     isVerified: row.is_verified,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+export function eventRowToEvent(row: EventRow): Event {
+  return {
+    _id: row.id,
+    title: row.title,
+    type: row.type,
+    organization: row.organization,
+    location: {
+      city: row.city,
+      state: row.state ?? undefined,
+      country: row.country,
+    },
+    startDate: row.start_date,
+    endDate: row.end_date,
+    description: row.description,
+    attendeeCount: row.attendee_count,
+    imageUrl: row.image_url ?? undefined,
+    tags: row.tags ?? [],
+    createdBy: row.created_by,
+    createdAt: row.created_at,
   };
 }

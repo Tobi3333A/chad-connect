@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,14 +18,14 @@ export default function EventDetailScreen() {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [joined, setJoined] = useState(false);
+  const [joining, setJoining] = useState(false);
 
   useEffect(() => {
-    if (id) {
-      getEventById(id).then((e) => {
-        setEvent(e);
-        setLoading(false);
-      });
-    }
+    if (!id) return;
+    getEventById(id)
+      .then(setEvent)
+      .catch(() => setEvent(null))
+      .finally(() => setLoading(false));
   }, [id]);
 
   if (loading) {
@@ -45,8 +45,17 @@ export default function EventDetailScreen() {
   }
 
   const handleJoin = async () => {
-    await joinEvent(event._id);
-    setJoined(true);
+    setJoining(true);
+    try {
+      await joinEvent(event._id);
+      const refreshed = await getEventById(event._id);
+      if (refreshed) setEvent(refreshed);
+      setJoined(true);
+    } catch (e) {
+      Alert.alert('Could not join', e instanceof Error ? e.message : 'Something went wrong');
+    } finally {
+      setJoining(false);
+    }
   };
 
   return (
@@ -62,7 +71,15 @@ export default function EventDetailScreen() {
           <Text style={styles.org}>{event.organization}</Text>
 
           <Card style={styles.infoCard}>
-            <InfoRow icon="location-outline" label="Location" value={`${event.location.city}, ${event.location.state}`} />
+            <InfoRow
+              icon="location-outline"
+              label="Location"
+              value={
+                event.location.state
+                  ? `${event.location.city}, ${event.location.state}`
+                  : event.location.city
+              }
+            />
             <InfoRow
               icon="calendar-outline"
               label="Dates"
@@ -82,10 +99,10 @@ export default function EventDetailScreen() {
 
           <View style={styles.actions}>
             <Button
-              title={joined ? 'Joined ✓' : 'Join Event'}
+              title={joined ? 'Joined ✓' : joining ? 'Joining...' : 'Join Event'}
               onPress={handleJoin}
               fullWidth
-              disabled={joined}
+              disabled={joined || joining}
             />
             <Button
               title="Find Housing"

@@ -37,14 +37,16 @@ export default function CreateEventScreen() {
         organization,
         city,
         country: 'USA',
-        startDate: startDate || new Date().toISOString(),
-        endDate: endDate || new Date().toISOString(),
+        startDate: startDate || new Date().toISOString().slice(0, 10),
+        endDate: endDate || new Date().toISOString().slice(0, 10),
         description,
         tags: [],
       });
       Alert.alert('Created!', 'Your event has been posted.', [
         { text: 'OK', onPress: () => router.back() },
       ]);
+    } catch (e) {
+      Alert.alert('Could not create event', e instanceof Error ? e.message : 'Something went wrong');
     } finally {
       setLoading(false);
     }
