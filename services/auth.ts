@@ -2,11 +2,12 @@ import type { OnboardingInput, User } from '@/types';
 import { profileRowToUser } from '@/lib/mappers';
 import { supabase } from '@/lib/supabase';
 
-/**
- * Onboarding still updates local return value only.
- * Persisting to `profiles` is Feature 3.
- */
-let onboardingDraft: User | null = null;
+async function requireAuthUserId(): Promise<string> {
+  const { data, error } = await supabase.auth.getUser();
+  if (error) throw error;
+  if (!data.user) throw new Error('Not authenticated');
+  return data.user.id;
+}
 
 export async function sendVerificationCode(email: string): Promise<{ success: boolean }> {
   const normalized = email.trim().toLowerCase();
@@ -34,8 +35,6 @@ export async function verifyCode(email: string, code: string): Promise<User> {
   if (error) throw new Error(error.message);
   if (!data.user) throw new Error('Verification failed');
 
-  onboardingDraft = null;
-
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('*')
@@ -51,34 +50,54 @@ export async function verifyCode(email: string, code: string): Promise<User> {
 }
 
 export async function completeOnboarding(input: OnboardingInput): Promise<User> {
-  // Feature 3 will persist this to Supabase profiles.
-  const { data: authData } = await supabase.auth.getUser();
-  if (!authData.user) throw new Error('Not authenticated');
+  const userId = await requireAuthUserId();
 
-  const existing = await getCurrentUser();
-  const user: User = {
-    _id: authData.user.id,
-    email: existing?.email ?? authData.user.email ?? '',
-    name: input.name,
-    university: input.university,
-    major: input.major,
-    graduationYear: input.graduationYear,
-    bio: input.bio,
-    needs: input.needs,
-    location: input.city
-      ? { city: input.city, country: input.country ?? 'USA' }
-      : undefined,
-    isVerified: true,
-    createdAt: existing?.createdAt ?? new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  onboardingDraft = user;
-  return user;
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({
+      name: input.name.trim(),
+      university: input.university.trim(),
+      major: input.major.trim(),
+      graduation_year: input.graduationYear,
+      bio: input.bio?.trim() || null,
+      needs: input.needs,
+      city: input.city?.trim() || null,
+      country: input.country?.trim() || null,
+      is_verified: true,
+    })
+    .eq('id', userId)
+    .select('*')
+    .single();
+
+  if (error) throw new Error(error.message);
+  return profileRowToUser(data);
+}
+
+export async function updateProfile(input: {
+  name: string;
+  bio?: string;
+  city?: string;
+  needs: User['needs'];
+}): Promise<User> {
+  const userId = await requireAuthUserId();
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({
+      name: input.name.trim(),
+      bio: input.bio?.trim() || null,
+      city: input.city?.trim() || null,
+      needs: input.needs,
+    })
+    .eq('id', userId)
+    .select('*')
+    .single();
+
+  if (error) throw new Error(error.message);
+  return profileRowToUser(data);
 }
 
 export async function getCurrentUser(): Promise<User | null> {
-  if (onboardingDraft) return onboardingDraft;
-
   const { data: authData } = await supabase.auth.getUser();
   if (!authData.user) return null;
 
@@ -93,8 +112,19 @@ export async function getCurrentUser(): Promise<User | null> {
   return profileRowToUser(data);
 }
 
+export async function getUserById(id: string): Promise<User | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  return profileRowToUser(data);
+}
+
 export async function signOut(): Promise<void> {
-  onboardingDraft = null;
   const { error } = await supabase.auth.signOut();
   if (error) throw new Error(error.message);
 }
