@@ -1,10 +1,11 @@
-import type { Event, HousingPost, NeedType, RideRequest, User } from '@/types';
+import type { Event, FeedItem, HousingPost, NeedType, RideRequest, User } from '@/types';
 import type { Database } from '@/supabase/types';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 type EventRow = Database['public']['Tables']['events']['Row'];
 type HousingRow = Database['public']['Tables']['housing_posts']['Row'];
 type RideRow = Database['public']['Tables']['ride_requests']['Row'];
+type FeedRow = Database['public']['Tables']['feed_items']['Row'];
 
 export function profileRowToUser(row: ProfileRow): User {
   return {
@@ -99,6 +100,24 @@ export function rideRowToRequest(
     description: row.description,
     authorId: row.author_id,
     author,
+    createdAt: row.created_at,
+  };
+}
+
+export function feedRowToItem(row: FeedRow, author?: User): FeedItem {
+  const metadata =
+    row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+      ? (row.metadata as Record<string, string | number>)
+      : undefined;
+
+  return {
+    _id: row.id,
+    type: row.type,
+    title: row.title,
+    subtitle: row.subtitle,
+    authorId: row.author_id,
+    author,
+    metadata,
     createdAt: row.created_at,
   };
 }

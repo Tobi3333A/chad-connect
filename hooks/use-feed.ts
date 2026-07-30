@@ -11,6 +11,8 @@ export function useFeed() {
     try {
       const data = await getFeedItems();
       setItems(data);
+    } catch {
+      setItems([]);
     } finally {
       setLoading(false);
     }
