@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/layout/screen';
@@ -20,18 +20,40 @@ const TYPE_ICONS: Record<Notification['type'], keyof typeof Ionicons.glyphMap> =
 export default function NotificationsScreen() {
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    getNotifications().then(setNotifications);
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      setNotifications(await getNotifications());
+    } catch {
+      setNotifications([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    load();
+  }, [load]);
+
   const handlePress = async (notif: Notification) => {
-    await markNotificationRead(notif._id);
-    setNotifications((prev) =>
-      prev.map((n) => (n._id === notif._id ? { ...n, read: true } : n)),
-    );
+    try {
+      await markNotificationRead(notif._id);
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === notif._id ? { ...n, read: true } : n)),
+      );
+    } catch {
+      // Still navigate even if mark-read fails
+    }
+
     if (notif.type === 'message' && notif.relatedId) {
       router.push(`/chat/${notif.relatedId}`);
+      return;
+    }
+    if (notif.type === 'connection' && notif.relatedId) {
+      // relatedId is the connection row id — open home for now
+      router.push('/(tabs)');
     }
   };
 
@@ -39,7 +61,9 @@ export default function NotificationsScreen() {
     <View style={styles.container}>
       <ScreenHeader showBack title="Notifications" />
       <Screen scroll={false}>
-        {notifications.length === 0 ? (
+        {loading ? (
+          <ActivityIndicator color={Palette.primary} style={styles.loader} />
+        ) : notifications.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="notifications-off-outline" size={48} color={Palette.textTertiary} />
             <Text style={styles.emptyTitle}>All caught up</Text>
@@ -55,7 +79,9 @@ export default function NotificationsScreen() {
               </View>
               <View style={styles.content}>
                 <Text style={styles.title}>{notif.title}</Text>
-                <Text style={styles.body} numberOfLines={2}>{notif.body}</Text>
+                <Text style={styles.body} numberOfLines={2}>
+                  {notif.body}
+                </Text>
                 <Text style={styles.time}>
                   {new Date(notif.createdAt).toLocaleDateString('en-US', {
                     month: 'short',
@@ -76,6 +102,7 @@ export default function NotificationsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Palette.background },
+  loader: { marginTop: Spacing.xxl },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
   emptyTitle: { ...Typography.h3, color: Palette.text },
   row: {

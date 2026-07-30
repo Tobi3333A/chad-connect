@@ -5,8 +5,12 @@ export function useUnreadNotifications() {
   const [count, setCount] = useState(0);
 
   const refresh = useCallback(async () => {
-    const c = await getUnreadCount();
-    setCount(c);
+    try {
+      const c = await getUnreadCount();
+      setCount(c);
+    } catch {
+      setCount(0);
+    }
   }, []);
 
   useEffect(() => {
