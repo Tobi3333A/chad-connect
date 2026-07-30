@@ -1,9 +1,9 @@
 import { Platform } from 'react-native';
 
 export const Palette = {
-  primary: '#4F46E5',
-  primaryLight: '#818CF8',
-  primaryDark: '#3730A3',
+  primary: '#2a6a52',
+  primaryLight: '#3d8a6c',
+  primaryDark: '#1f4f3d',
   accent: '#06B6D4',
   success: '#10B981',
   warning: '#F59E0B',
@@ -21,10 +21,10 @@ export const Palette = {
   textTertiary: '#9CA3AF',
   textInverse: '#FFFFFF',
 
-  gradientStart: '#4F46E5',
-  gradientEnd: '#7C3AED',
+  gradientStart: '#1f4f3d',
+  gradientEnd: '#2a6a52',
 
-  housing: '#8B5CF6',
+  housing: '#2a6a52',
   rides: '#06B6D4',
   events: '#F59E0B',
   chat: '#10B981',
