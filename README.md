@@ -38,7 +38,7 @@ There is no separate custom API server — the client talks to Supabase directly
 1. **Clone the repo**
 
    ```bash
-   git clone https://github.com/<your-org>/hack-connect.git
+   git clone https://github.com/<your-org>/chad-connect.git
    cd hack-connect
    ```
 
